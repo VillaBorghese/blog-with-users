@@ -1,5 +1,5 @@
 from datetime import date
-from flask import Flask, abort, render_template, redirect, url_for, flash
+from flask import Flask, abort, render_template, redirect, url_for, flash, request
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from flask_gravatar import Gravatar
@@ -32,6 +32,13 @@ ckeditor = CKEditor(app)
 Bootstrap5(app)
 
 # TODO: Configure Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+# user loader
+@login_manager.user_loader
+def load_user(user_id):
+    return db.get_or_404(User, user_id)
 
 
 # CREATE DATABASE
@@ -76,12 +83,17 @@ def register():
 
     if form.validate_on_submit():
 
+        hashed_salted_password= generate_password_hash(
+            form.password.data,
+            method="pbkdf2:sha256",
+            salt_length=8
+        )
+
         # Case 1: the user doesn't exist yet
         # Fetching the data from the form and creating a user object
         user = User(
-
             email=form.email.data,
-            password=generate_password_hash(form.password.data, method="pbkdf2:sha256", salt_length=8),
+            password=hashed_salted_password,
             name=form.name.data
         )
 
@@ -94,8 +106,20 @@ def register():
 
 
 # TODO: Retrieve a user from the database based on their email. 
-@app.route('/login')
+@app.route('/login', methods=["GET", "POST"])
 def login():
+    if request.method == "POST":
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        results = db.session.execute(db.select(User).where(User.email == email))
+        user = results.scalar()
+
+        if user:
+            if check_password_hash(user.password, password):
+                login_user(user)
+                return redirect(url_for("get_all_posts", logged_in=current_user.is_authenticated))
+
     return render_template("login.html")
 
 
