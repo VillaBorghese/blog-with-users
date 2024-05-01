@@ -20,7 +20,12 @@ class CreateRegisterForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired()])
     submit = SubmitField("Sign Me Up!")
 
+
 # TODO: Create a LoginForm to login existing users
+class CreateLoginForm(FlaskForm):
+    email = StringField("Email", validators=[DataRequired()])
+    password = PasswordField("Password", validators=[DataRequired()])
+    submit = SubmitField("Go")
 
 
 # TODO: Create a CommentForm so users can leave comments below posts
